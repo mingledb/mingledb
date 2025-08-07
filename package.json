@@ -1,0 +1,27 @@
+{
+  "name": "mingledb",
+  "version": "1.0.0",
+  "description": "Lightweight file based NoSQL DB",
+  "main": "index.js",
+  "scripts": {
+    "start": "node webtest.js"
+  },
+  "keywords": [
+    "database",
+    "local",
+    "bson",
+    "compressed",
+    "tinydb",
+    "flatfile",
+    "embedded"
+  ],
+  "author": "Cloud",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "bson": "^6.10.4"
+  },
+  "devDependencies": {
+    "fastify": "^5.4.0"
+  }
+}
