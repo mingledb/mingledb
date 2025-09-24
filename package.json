@@ -1,6 +1,6 @@
 {
   "name": "mingledb",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Lightweight file based NoSQL DB",
   "main": "index.js",
   "scripts": {
