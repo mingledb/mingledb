@@ -4,7 +4,8 @@
   "description": "Lightweight file based NoSQL DB",
   "main": "index.js",
   "scripts": {
-    "start": "node webtest.js"
+    "start": "node webtest.js",
+    "test": "jest"
   },
   "keywords": [
     "database",

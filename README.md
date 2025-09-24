@@ -171,7 +171,7 @@ Each collection file contains:
 
 ```bash
 npm install
-node test.js   # or build your app around it
+npm run test
 ```
 
 ---
