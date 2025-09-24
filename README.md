@@ -1,4 +1,13 @@
-# 🧩 MingleDB
+<div align="center">
+  <h1> MingleDB </h1>
+</div>
+
+<p align="center">
+  <img src="https://img.shields.io/github/stars/marcuwynu23/mingledb.svg" alt="Stars Badge"/>
+  <img src="https://img.shields.io/github/forks/marcuwynu23/mingledb.svg" alt="Forks Badge"/>
+  <img src="https://img.shields.io/github/issues/marcuwynu23/mingledb.svg" alt="Issues Badge"/>
+  <img src="https://img.shields.io/github/license/marcuwynu23/mingledb.svg" alt="License Badge"/>
+</p>
 
 **MingleDB** is a lightweight, file-based NoSQL database built on top of the [BSON](https://bsonspec.org/) serialization format with support for:
 
@@ -48,9 +57,9 @@ db.login("admin", "secure123");
 
 // ✅ 2. Define schema
 db.defineSchema("users", {
-  name: {type: "string", required: true},
-  email: {type: "string", required: true, unique: true},
-  age: {type: "number"},
+  name: { type: "string", required: true },
+  email: { type: "string", required: true, unique: true },
+  age: { type: "number" },
 });
 
 // 📥 3. Insert documents
@@ -62,14 +71,14 @@ db.insertOne("users", {
 
 // 🔎 4. Read operations
 console.log(db.findAll("users")); // All documents
-console.log(db.findOne("users", {email: "wayne@mingle.com"})); // Exact match
-console.log(db.find("users", {age: {$gte: 18, $lt: 30}})); // Range filter
+console.log(db.findOne("users", { email: "wayne@mingle.com" })); // Exact match
+console.log(db.find("users", { age: { $gte: 18, $lt: 30 } })); // Range filter
 
 // 📝 5. Update a document
-db.updateOne("users", {name: "Wayne"}, {age: 26});
+db.updateOne("users", { name: "Wayne" }, { age: 26 });
 
 // 🗑️ 6. Delete a document
-db.deleteOne("users", {email: "wayne@mingle.com"});
+db.deleteOne("users", { email: "wayne@mingle.com" });
 
 // 🚪 7. Logout
 db.logout("admin");
@@ -103,9 +112,9 @@ logout(username: string): void
 
 ```js
 db.defineSchema("posts", {
-  title: {type: "string", required: true},
-  slug: {type: "string", unique: true},
-  views: {type: "number"},
+  title: { type: "string", required: true },
+  slug: { type: "string", unique: true },
+  views: { type: "number" },
 });
 ```
 
