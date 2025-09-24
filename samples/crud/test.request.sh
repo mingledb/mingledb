@@ -18,8 +18,8 @@ curl -X POST http://localhost:3000/users \
   -d '{
     "username": "superuser",
     "user": {
-      "name": "Cloud",
-      "email": "cloud@seed.com",
+      "name": "Marco",
+      "email": "marco@seed.com",
       "age": 25
     }
   }'
@@ -49,16 +49,16 @@ echo "Updating user's age to 26..."
 curl -X PUT http://localhost:3000/users \
   -H "Content-Type: application/json" \
   -d '{
-    "filter": { "email": "cloud@seed.com" },
+    "filter": { "email": "marco@seed.com" },
     "update": { "age": 26 }
   }'
 echo -e "\n"
 
-echo "Deleting user with name 'Cloud'..."
+echo "Deleting user with name 'Marco'..."
 curl -X DELETE http://localhost:3000/users \
   -H "Content-Type: application/json" \
   -d '{
-    "filter": { "name": "Cloud" }
+    "filter": { "name": "Marco" }
   }'
 echo -e "\n"
 

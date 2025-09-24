@@ -3,3 +3,5 @@ mydb/
 
 .secrets
 .secrets.example
+
+tmp/

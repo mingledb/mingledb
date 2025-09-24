@@ -7,6 +7,7 @@ const zlib = require("zlib");
 const crypto = require("crypto");
 
 const HEADER = Buffer.from("MINGLEDBv1");
+const MINGLEDB_EXTENSIONS = ".mgdb";
 
 class MingleDB {
   constructor(dbDir = "./mydb") {
@@ -14,6 +15,22 @@ class MingleDB {
     this.schemas = {};
     this.authenticatedUsers = new Set();
     if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
+  }
+  /**
+   * 🧹 Completely wipe all collections and reset schemas/auth state.
+   * Useful for unit testing or a full reset.
+   */
+  reset() {
+    if (fs.existsSync(this.dbDir)) {
+      // remove all .mingleDB files
+      for (const file of fs.readdirSync(this.dbDir)) {
+        if (file.endsWith(MINGLEDB_EXTENSIONS)) {
+          fs.unlinkSync(path.join(this.dbDir, file));
+        }
+      }
+    }
+    this.schemas = {};
+    this.authenticatedUsers.clear();
   }
 
   defineSchema(collection, schemaDefinition) {
@@ -27,11 +44,11 @@ class MingleDB {
     if (exists) throw new Error("Username already exists.");
 
     const hashed = this._hashPassword(password);
-    this.insertOne("_auth", {username, password: hashed});
+    this.insertOne("_auth", { username, password: hashed });
   }
 
   login(username, password) {
-    const user = this.findOne("_auth", {username});
+    const user = this.findOne("_auth", { username });
     if (!user || user.password !== this._hashPassword(password)) {
       throw new Error("Authentication failed.");
     }
@@ -52,13 +69,13 @@ class MingleDB {
   }
 
   _getFilePath(collection) {
-    return path.join(this.dbDir, `${collection}.mingleDB`);
+    return path.join(this.dbDir, `${collection}${MINGLEDB_EXTENSIONS}`);
   }
 
   _initCollectionFile(collection) {
     const filePath = this._getFilePath(collection);
     if (!fs.existsSync(filePath)) {
-      const meta = Buffer.from(JSON.stringify({collection}));
+      const meta = Buffer.from(JSON.stringify({ collection }));
       const metaLen = Buffer.alloc(4);
       metaLen.writeUInt32LE(meta.length);
       fs.writeFileSync(filePath, Buffer.concat([HEADER, metaLen, meta]));
@@ -79,7 +96,7 @@ class MingleDB {
 
       if (value !== undefined && typeof value !== rule.type) {
         throw new Error(
-          `Validation error: Field "${key}" must be of type ${rule.type}.`
+          `Validation error: Field "${key}" must be of type ${rule.type}.`,
         );
       }
 
@@ -88,7 +105,7 @@ class MingleDB {
         const duplicate = all.find((d) => d[key] === value);
         if (duplicate) {
           throw new Error(
-            `Validation error: Duplicate value for unique field "${key}".`
+            `Validation error: Duplicate value for unique field "${key}".`,
           );
         }
       }
@@ -163,7 +180,7 @@ class MingleDB {
     const updatedDocs = all.map((doc) => {
       if (!updated && this._matchQuery(doc, query)) {
         updated = true;
-        return {...doc, ...update};
+        return { ...doc, ...update };
       }
       return doc;
     });
@@ -174,7 +191,7 @@ class MingleDB {
 
   _rewriteCollection(collection, docs) {
     const filePath = this._getFilePath(collection);
-    const meta = Buffer.from(JSON.stringify({collection}));
+    const meta = Buffer.from(JSON.stringify({ collection }));
     const metaLen = Buffer.alloc(4);
     metaLen.writeUInt32LE(meta.length);
 
@@ -188,7 +205,7 @@ class MingleDB {
 
     fs.writeFileSync(
       filePath,
-      Buffer.concat([HEADER, metaLen, meta, ...docBuffers])
+      Buffer.concat([HEADER, metaLen, meta, ...docBuffers]),
     );
   }
 
