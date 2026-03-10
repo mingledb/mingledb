@@ -224,6 +224,16 @@ class MingleDB {
         if ("$ne" in value && !(docVal !== value.$ne)) return false;
         if ("$in" in value && !value.$in.includes(docVal)) return false;
         if ("$nin" in value && value.$nin.includes(docVal)) return false;
+        if ("$regex" in value) {
+          const pattern = typeof value.$regex === "string" ? value.$regex : String(value.$regex);
+          const flags = typeof value.$options === "string" && value.$options.includes("i") ? "i" : "";
+          try {
+            const re = new RegExp(pattern, flags);
+            return typeof docVal === "string" && re.test(docVal);
+          } catch {
+            return false;
+          }
+        }
         return true;
       }
       return docVal === value;
