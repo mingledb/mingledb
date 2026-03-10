@@ -1,5 +1,9 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
+# This workflow runs tests and publishes to npm when a release is created or a v* tag is pushed.
+# EOTP (one-time password) fix: If publish fails with "requires a one-time password", either:
+#   1) Use Trusted Publishing (recommended): On npmjs.com → Package mingledb → Settings → Trusted Publishers,
+#      add this workflow: npm-publisher.yml, repo: mingledb, owner: <your-github-username>. Then remove NPM_TOKEN secret.
+#   2) Or use an npm token that bypasses 2FA: Create a granular token at npmjs.com with "Publish" and "Bypass 2FA" enabled,
+#      or a classic Automation token, and set it as the NPM_TOKEN repo secret.
 
 name: Node.js Package Publisher
 
@@ -24,13 +28,16 @@ jobs:
   publish-npm:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required for npm Trusted Publishing (OIDC)
+      contents: read
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 22   # Node 22+ needed for npm Trusted Publishing (npm CLI 11.5.1+)
         registry-url: https://registry.npmjs.org/
     - run: npm ci
-    - run: npm publish
+    - run: npm publish --provenance
       env:
         NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
