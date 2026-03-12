@@ -10,7 +10,7 @@ const HEADER = Buffer.from("MINGLEDBv1");
 const MINGLEDB_EXTENSIONS = ".mgdb";
 
 class MingleDB {
-  constructor(dbDir = "./mydb") {
+  constructor(dbDir = ".mgdb") {
     this.dbDir = dbDir;
     this.schemas = {};
     this.authenticatedUsers = new Set();
