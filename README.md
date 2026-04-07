@@ -3,10 +3,10 @@
 </div>
 
 <p align="center">
-  <img src="https://img.shields.io/github/stars/marcuwynu23/mingledb.svg" alt="Stars Badge"/>
-  <img src="https://img.shields.io/github/forks/marcuwynu23/mingledb.svg" alt="Forks Badge"/>
-  <img src="https://img.shields.io/github/issues/marcuwynu23/mingledb.svg" alt="Issues Badge"/>
-  <img src="https://img.shields.io/github/license/marcuwynu23/mingledb.svg" alt="License Badge"/>
+  <img src="https://img.shields.io/github/stars/mingledb/mingledb.svg" alt="Stars Badge"/>
+  <img src="https://img.shields.io/github/forks/mingledb/mingledb.svg" alt="Forks Badge"/>
+  <img src="https://img.shields.io/github/issues/mingledb/mingledb.svg" alt="Issues Badge"/>
+  <img src="https://img.shields.io/github/license/mingledb/mingledb.svg" alt="License Badge"/>
 </p>
 
 **MingleDB** is a lightweight, file-based NoSQL database built on top of the [BSON](https://bsonspec.org/) serialization format with support for:
