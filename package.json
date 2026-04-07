@@ -18,6 +18,10 @@
   ],
   "author": "Cloud",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mingledb/mingledb.git"
+  },
   "type": "commonjs",
   "dependencies": {
     "bson": "^6.10.4",
