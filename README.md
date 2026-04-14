@@ -9,7 +9,6 @@
   <img src="https://img.shields.io/github/license/mingledb/mingledb.svg" alt="License Badge"/>
 </p>
 
-# MingleDB
 
 Lightweight file-based NoSQL database for Node.js with schema validation, query operators, basic auth, and single-file `.mgdb` persistence.
 
