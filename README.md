@@ -110,7 +110,7 @@ All collections are stored inside one `.mgdb` database file.
 - Contribution guide: [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - Code of conduct: [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
 - License: [`LICENSE`](./LICENSE)
-- Funding: [`FUNDING.yml`](./FUNDING.yml)
+- Funding: [`FUNDING.yml`](.github/FUNDING.yml)
 - Bug reports and feature requests: [Issue templates](./.github/ISSUE_TEMPLATE/)
 - Pull requests: [PR template](./.github/pull_request_template.md)
 
