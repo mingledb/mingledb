@@ -3,9 +3,24 @@
   "version": "1.1.0",
   "description": "Lightweight file based NoSQL DB",
   "main": "index.js",
+  "module": "index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.js",
+      "import": "./index.mjs",
+      "default": "./index.js"
+    }
+  },
   "scripts": {
     "start": "node webtest.js",
-    "test": "jest"
+    "test": "npm run test:unit && npm run test:interop",
+    "test:unit": "jest tests/test.js",
+    "test:interop": "npm run test:interop:cjs && npm run test:interop:esm && npm run test:interop:ts",
+    "test:interop:cjs": "node tests/interop/commonjs.test.cjs",
+    "test:interop:esm": "node tests/interop/esm.test.mjs",
+    "test:interop:ts": "tsc -p tests/interop/tsconfig.json && node tests/interop/dist/typescript.test.js"
   },
   "keywords": [
     "database",
@@ -29,6 +44,7 @@
   },
   "devDependencies": {
     "fastify": "^5.4.0",
-    "jest": "^30.1.3"
+    "jest": "^30.1.3",
+    "typescript": "^6.0.2"
   }
 }
