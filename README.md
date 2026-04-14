@@ -37,35 +37,48 @@ npm install mingledb
 
 ## Example Usage
 
+### 1) ESM (JavaScript `import`)
+
 ```js
 import MingleDB from "mingledb";
 
-const db = new MingleDB();
+const db = new MingleDB("./data/app.mgdb");
 
-// User authentication
-db.registerUser("admin", "secure123");
-db.login("admin", "secure123");
-
-// Define schema
 db.defineSchema("users", {
   name: { type: "string", required: true },
   email: { type: "string", required: true, unique: true },
   age: { type: "number" },
 });
 
-// Insert document
 db.insertOne("users", { name: "Wayne", email: "wayne@mingle.com", age: 25 });
-
-// Query
 console.log(db.findAll("users"));
-console.log(db.findOne("users", { email: "wayne@mingle.com" }));
+```
 
-// Update and delete
-db.updateOne("users", { name: "Wayne" }, { age: 26 });
-db.deleteOne("users", { email: "wayne@mingle.com" });
+### 2) CommonJS (`require`)
 
-// Logout
-db.logout("admin");
+```js
+const MingleDB = require("mingledb");
+
+const db = new MingleDB("./data/app.mgdb");
+db.insertOne("users", { name: "CommonJS User" });
+console.log(db.findOne("users", { name: "CommonJS User" }));
+```
+
+### 3) TypeScript
+
+```ts
+import MingleDB from "mingledb";
+
+const db = new MingleDB("./data/app.mgdb");
+
+db.defineSchema("users", {
+  id: { type: "number", required: true, unique: true },
+  name: { type: "string", required: true },
+});
+
+db.insertOne("users", { id: 1, name: "TypeScript User" });
+const user = db.findOne("users", { id: { $eq: 1 } });
+console.log(user?.name);
 ```
 
 ---
@@ -89,6 +102,17 @@ const db = new MingleDB("./data"); // directory -> ./data/database.mgdb
 ```
 
 All collections are stored inside one `.mgdb` database file.
+
+---
+
+## Community and Project Docs
+
+- Contribution guide: [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- Code of conduct: [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
+- License: [`LICENSE`](./LICENSE)
+- Funding: [`FUNDING.yml`](./FUNDING.yml)
+- Bug reports and feature requests: [Issue templates](./.github/ISSUE_TEMPLATE/)
+- Pull requests: [PR template](./.github/pull_request_template.md)
 
 ---
 
