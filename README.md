@@ -29,7 +29,7 @@ npm install mingledb
 | Schema Definition    | Define required fields, types, and unique constraints per collection |
 | Smart Querying       | Supports filters like `$gt`, `$in`, `$regex`, and ranges             |
 | Compression          | Stores entries compactly using BSON and zlib                         |
-| Flatfile Storage     | Saves data in `.mingleDB` files with binary headers and metadata     |
+| Flatfile Storage     | Saves data in a single `.mgdb` database file with binary records     |
 | CRUD Operations      | Simple create, read, update, and delete support                      |
 | Minimal Dependencies | Runs anywhere Node.js is supported                                   |
 
@@ -84,10 +84,11 @@ db.logout("admin");
 ## Configuration
 
 ```js
-const db = new MingleDB("./data"); // Custom storage directory
+const db = new MingleDB("./data"); // directory -> ./data/database.mgdb
+// const db = new MingleDB("./data/app.mgdb"); // explicit single-file path
 ```
 
-Collections are stored as `.mingleDB` binary files with compressed BSON entries.
+All collections are stored inside one `.mgdb` database file.
 
 ---
 
