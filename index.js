@@ -8,26 +8,22 @@ const crypto = require("crypto");
 
 const HEADER = Buffer.from("MINGLEDBv1");
 const MINGLEDB_EXTENSIONS = ".mgdb";
+const DEFAULT_DB_FILE = "database.mgdb";
 
 class MingleDB {
   constructor(dbDir = ".mgdb") {
-    this.dbDir = dbDir;
+    this.dbPath = this._resolveDbPath(dbDir);
     this.schemas = {};
     this.authenticatedUsers = new Set();
-    if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
+    fs.mkdirSync(path.dirname(this.dbPath), { recursive: true });
   }
   /**
-   * 🧹 Completely wipe all collections and reset schemas/auth state.
+   * Completely wipe database contents and reset schemas/auth state.
    * Useful for unit testing or a full reset.
    */
   reset() {
-    if (fs.existsSync(this.dbDir)) {
-      // remove all .mingleDB files
-      for (const file of fs.readdirSync(this.dbDir)) {
-        if (file.endsWith(MINGLEDB_EXTENSIONS)) {
-          fs.unlinkSync(path.join(this.dbDir, file));
-        }
-      }
+    if (fs.existsSync(this.dbPath)) {
+      fs.unlinkSync(this.dbPath);
     }
     this.schemas = {};
     this.authenticatedUsers.clear();
@@ -38,7 +34,7 @@ class MingleDB {
   }
 
   registerUser(username, password) {
-    this._initCollectionFile("_auth");
+    this._ensureDatabaseFile();
     const users = this.findAll("_auth");
     const exists = users.find((u) => u.username === username);
     if (exists) throw new Error("Username already exists.");
@@ -68,17 +64,21 @@ class MingleDB {
     return crypto.createHash("sha256").update(password).digest("hex");
   }
 
-  _getFilePath(collection) {
-    return path.join(this.dbDir, `${collection}${MINGLEDB_EXTENSIONS}`);
+  _resolveDbPath(dbPath) {
+    const raw = String(dbPath || "").trim();
+    if (!raw) return DEFAULT_DB_FILE;
+    if (raw.toLowerCase().endsWith(MINGLEDB_EXTENSIONS)) return raw;
+    return path.join(raw, DEFAULT_DB_FILE);
   }
 
-  _initCollectionFile(collection) {
-    const filePath = this._getFilePath(collection);
-    if (!fs.existsSync(filePath)) {
-      const meta = Buffer.from(JSON.stringify({ collection }));
+  _ensureDatabaseFile() {
+    if (!fs.existsSync(this.dbPath)) {
+      const meta = Buffer.from(
+        JSON.stringify({ scope: "database", format: "single-file-v2" }),
+      );
       const metaLen = Buffer.alloc(4);
       metaLen.writeUInt32LE(meta.length);
-      fs.writeFileSync(filePath, Buffer.concat([HEADER, metaLen, meta]));
+      fs.writeFileSync(this.dbPath, Buffer.concat([HEADER, metaLen, meta]));
     }
   }
 
@@ -113,39 +113,83 @@ class MingleDB {
   }
 
   insertOne(collection, doc) {
-    this._initCollectionFile(collection);
+    this._ensureDatabaseFile();
     this._validateSchema(collection, doc);
-    const filePath = this._getFilePath(collection);
 
-    const bson = BSON.serialize(doc);
+    const bson = BSON.serialize({ collection, doc });
     const compressed = zlib.deflateSync(bson);
     const length = Buffer.alloc(4);
     length.writeUInt32LE(compressed.length);
-
-    fs.appendFileSync(filePath, Buffer.concat([length, compressed]));
+    fs.appendFileSync(this.dbPath, Buffer.concat([length, compressed]));
   }
 
-  findAll(collection) {
-    const filePath = this._getFilePath(collection);
-    if (!fs.existsSync(filePath)) return [];
-
-    const buffer = fs.readFileSync(filePath);
-    const docs = [];
+  _readAllRecords() {
+    if (!fs.existsSync(this.dbPath)) return [];
+    const buffer = fs.readFileSync(this.dbPath);
+    if (buffer.length < HEADER.length + 4) return [];
+    if (!buffer.slice(0, HEADER.length).equals(HEADER)) {
+      throw new Error("Invalid mingleDB file header.");
+    }
 
     let offset = HEADER.length;
     const metaLen = buffer.readUInt32LE(offset);
-    offset += 4 + metaLen;
+    offset += 4;
+    const meta = JSON.parse(
+      buffer.slice(offset, offset + metaLen).toString("utf8") || "{}",
+    );
+    const legacyCollection =
+      typeof meta.collection === "string" ? meta.collection : "";
+    offset += metaLen;
 
+    const records = [];
     while (offset < buffer.length) {
+      if (offset + 4 > buffer.length) break;
       const len = buffer.readUInt32LE(offset);
       offset += 4;
+      if (offset + len > buffer.length) break;
       const compressedBuf = buffer.slice(offset, offset + len);
       offset += len;
       const bson = zlib.inflateSync(compressedBuf);
-      docs.push(BSON.deserialize(bson));
+      const decoded = BSON.deserialize(bson);
+      if (
+        decoded &&
+        typeof decoded.collection === "string" &&
+        typeof decoded.doc === "object" &&
+        decoded.doc !== null
+      ) {
+        records.push({ collection: decoded.collection, doc: decoded.doc });
+      } else if (legacyCollection) {
+        records.push({ collection: legacyCollection, doc: decoded });
+      }
     }
+    return records;
+  }
 
-    return docs;
+  _writeAllRecords(records) {
+    const meta = Buffer.from(
+      JSON.stringify({ scope: "database", format: "single-file-v2" }),
+    );
+    const metaLen = Buffer.alloc(4);
+    metaLen.writeUInt32LE(meta.length);
+
+    const docBuffers = records.map((record) => {
+      const bson = BSON.serialize(record);
+      const compressed = zlib.deflateSync(bson);
+      const len = Buffer.alloc(4);
+      len.writeUInt32LE(compressed.length);
+      return Buffer.concat([len, compressed]);
+    });
+
+    fs.writeFileSync(
+      this.dbPath,
+      Buffer.concat([HEADER, metaLen, meta, ...docBuffers]),
+    );
+  }
+
+  findAll(collection) {
+    return this._readAllRecords()
+      .filter((record) => record.collection === collection)
+      .map((record) => record.doc);
   }
 
   find(collection, filter = {}) {
@@ -190,23 +234,11 @@ class MingleDB {
   }
 
   _rewriteCollection(collection, docs) {
-    const filePath = this._getFilePath(collection);
-    const meta = Buffer.from(JSON.stringify({ collection }));
-    const metaLen = Buffer.alloc(4);
-    metaLen.writeUInt32LE(meta.length);
-
-    const docBuffers = docs.map((doc) => {
-      const bson = BSON.serialize(doc);
-      const compressed = zlib.deflateSync(bson);
-      const len = Buffer.alloc(4);
-      len.writeUInt32LE(compressed.length);
-      return Buffer.concat([len, compressed]);
-    });
-
-    fs.writeFileSync(
-      filePath,
-      Buffer.concat([HEADER, metaLen, meta, ...docBuffers]),
+    const current = this._readAllRecords().filter(
+      (record) => record.collection !== collection,
     );
+    const next = docs.map((doc) => ({ collection, doc }));
+    this._writeAllRecords([...current, ...next]);
   }
 
   _matchQuery(doc, query) {
@@ -225,8 +257,14 @@ class MingleDB {
         if ("$in" in value && !value.$in.includes(docVal)) return false;
         if ("$nin" in value && value.$nin.includes(docVal)) return false;
         if ("$regex" in value) {
-          const pattern = typeof value.$regex === "string" ? value.$regex : String(value.$regex);
-          const flags = typeof value.$options === "string" && value.$options.includes("i") ? "i" : "";
+          const pattern =
+            typeof value.$regex === "string"
+              ? value.$regex
+              : String(value.$regex);
+          const flags =
+            typeof value.$options === "string" && value.$options.includes("i")
+              ? "i"
+              : "";
           try {
             const re = new RegExp(pattern, flags);
             return typeof docVal === "string" && re.test(docVal);
