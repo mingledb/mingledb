@@ -3,6 +3,6 @@ mydb/
 dist/
 
 .secrets
-.secrets.example
+!.secrets.example
 
 tmp/
