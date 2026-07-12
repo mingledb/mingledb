@@ -1,28 +1,59 @@
-// mingleDB.js - Lightweight File-Based NoSQL Engine with Compression, Schema, Query, and Basic Authentication Support
-
-const fs = require("fs");
-const path = require("path");
-const BSON = require("bson");
-const zlib = require("zlib");
-const crypto = require("crypto");
+import fs from "fs";
+import path from "path";
+import BSON from "bson";
+import zlib from "zlib";
+import crypto from "crypto";
 
 const HEADER = Buffer.from("MINGLEDBv1");
 const MINGLEDB_EXTENSIONS = ".mgdb";
 
+interface SchemaRule {
+  type?: string;
+  required?: boolean;
+  unique?: boolean;
+}
+
+interface SchemaDefinition {
+  [key: string]: SchemaRule;
+}
+
+interface QueryOperators {
+  $gt?: number;
+  $gte?: number;
+  $lt?: number;
+  $lte?: number;
+  $eq?: unknown;
+  $ne?: unknown;
+  $in?: unknown[];
+  $nin?: unknown[];
+  $regex?: string | RegExp;
+  $options?: string;
+}
+
+type QueryValue = unknown | RegExp | QueryOperators;
+
+interface Query {
+  [key: string]: QueryValue;
+}
+
+interface Document {
+  [key: string]: unknown;
+}
+
 class MingleDB {
+  private dbDir: string;
+  private schemas: Record<string, SchemaDefinition>;
+  private authenticatedUsers: Set<string>;
+
   constructor(dbDir = ".mgdb") {
     this.dbDir = dbDir;
     this.schemas = {};
     this.authenticatedUsers = new Set();
     if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
   }
-  /**
-   * 🧹 Completely wipe all collections and reset schemas/auth state.
-   * Useful for unit testing or a full reset.
-   */
-  reset() {
+
+  reset(): void {
     if (fs.existsSync(this.dbDir)) {
-      // remove all .mingleDB files
       for (const file of fs.readdirSync(this.dbDir)) {
         if (file.endsWith(MINGLEDB_EXTENSIONS)) {
           fs.unlinkSync(path.join(this.dbDir, file));
@@ -33,11 +64,11 @@ class MingleDB {
     this.authenticatedUsers.clear();
   }
 
-  defineSchema(collection, schemaDefinition) {
+  defineSchema(collection: string, schemaDefinition: SchemaDefinition): void {
     this.schemas[collection] = schemaDefinition;
   }
 
-  registerUser(username, password) {
+  registerUser(username: string, password: string): void {
     this._initCollectionFile("_auth");
     const users = this.findAll("_auth");
     const exists = users.find((u) => u.username === username);
@@ -47,7 +78,7 @@ class MingleDB {
     this.insertOne("_auth", { username, password: hashed });
   }
 
-  login(username, password) {
+  login(username: string, password: string): boolean {
     const user = this.findOne("_auth", { username });
     if (!user || user.password !== this._hashPassword(password)) {
       throw new Error("Authentication failed.");
@@ -56,23 +87,23 @@ class MingleDB {
     return true;
   }
 
-  isAuthenticated(username) {
+  isAuthenticated(username: string): boolean {
     return this.authenticatedUsers.has(username);
   }
 
-  logout(username) {
+  logout(username: string): void {
     this.authenticatedUsers.delete(username);
   }
 
-  _hashPassword(password) {
+  private _hashPassword(password: string): string {
     return crypto.createHash("sha256").update(password).digest("hex");
   }
 
-  _getFilePath(collection) {
+  private _getFilePath(collection: string): string {
     return path.join(this.dbDir, `${collection}${MINGLEDB_EXTENSIONS}`);
   }
 
-  _initCollectionFile(collection) {
+  private _initCollectionFile(collection: string): void {
     const filePath = this._getFilePath(collection);
     if (!fs.existsSync(filePath)) {
       const meta = Buffer.from(JSON.stringify({ collection }));
@@ -82,7 +113,7 @@ class MingleDB {
     }
   }
 
-  _validateSchema(collection, doc) {
+  private _validateSchema(collection: string, doc: Document): void {
     const schema = this.schemas[collection];
     if (!schema) return;
 
@@ -112,7 +143,7 @@ class MingleDB {
     }
   }
 
-  insertOne(collection, doc) {
+  insertOne(collection: string, doc: Document): void {
     this._initCollectionFile(collection);
     this._validateSchema(collection, doc);
     const filePath = this._getFilePath(collection);
@@ -125,12 +156,12 @@ class MingleDB {
     fs.appendFileSync(filePath, Buffer.concat([length, compressed]));
   }
 
-  findAll(collection) {
+  findAll(collection: string): Document[] {
     const filePath = this._getFilePath(collection);
     if (!fs.existsSync(filePath)) return [];
 
     const buffer = fs.readFileSync(filePath);
-    const docs = [];
+    const docs: Document[] = [];
 
     let offset = HEADER.length;
     const metaLen = buffer.readUInt32LE(offset);
@@ -148,18 +179,18 @@ class MingleDB {
     return docs;
   }
 
-  find(collection, filter = {}) {
+  find(collection: string, filter: Query = {}): Document[] {
     const docs = this.findAll(collection);
     return docs.filter((doc) => this._matchQuery(doc, filter));
   }
 
-  findOne(collection, filter = {}) {
+  findOne(collection: string, filter: Query = {}): Document | null {
     return this.find(collection, filter)[0] || null;
   }
 
-  deleteOne(collection, query) {
+  deleteOne(collection: string, query: Query): boolean {
     const all = this.findAll(collection);
-    const newDocs = [];
+    const newDocs: Document[] = [];
     let deleted = false;
 
     for (const doc of all) {
@@ -174,7 +205,7 @@ class MingleDB {
     return deleted;
   }
 
-  updateOne(collection, query, update) {
+  updateOne(collection: string, query: Query, update: Document): boolean {
     const all = this.findAll(collection);
     let updated = false;
     const updatedDocs = all.map((doc) => {
@@ -189,7 +220,7 @@ class MingleDB {
     return updated;
   }
 
-  _rewriteCollection(collection, docs) {
+  private _rewriteCollection(collection: string, docs: Document[]): void {
     const filePath = this._getFilePath(collection);
     const meta = Buffer.from(JSON.stringify({ collection }));
     const metaLen = Buffer.alloc(4);
@@ -209,24 +240,31 @@ class MingleDB {
     );
   }
 
-  _matchQuery(doc, query) {
+  private _matchQuery(doc: Document, query: Query): boolean {
     return Object.entries(query).every(([key, value]) => {
       const docVal = doc[key];
       if (value instanceof RegExp) {
         return typeof docVal === "string" && value.test(docVal);
       }
       if (typeof value === "object" && value !== null) {
-        if ("$gt" in value && !(docVal > value.$gt)) return false;
-        if ("$gte" in value && !(docVal >= value.$gte)) return false;
-        if ("$lt" in value && !(docVal < value.$lt)) return false;
-        if ("$lte" in value && !(docVal <= value.$lte)) return false;
-        if ("$eq" in value && !(docVal === value.$eq)) return false;
-        if ("$ne" in value && !(docVal !== value.$ne)) return false;
-        if ("$in" in value && !value.$in.includes(docVal)) return false;
-        if ("$nin" in value && value.$nin.includes(docVal)) return false;
-        if ("$regex" in value) {
-          const pattern = typeof value.$regex === "string" ? value.$regex : String(value.$regex);
-          const flags = typeof value.$options === "string" && value.$options.includes("i") ? "i" : "";
+        const ops = value as QueryOperators;
+        if ("$gt" in ops && !(typeof docVal === "number" && typeof ops.$gt === "number" && docVal > ops.$gt)) return false;
+        if ("$gte" in ops && !(typeof docVal === "number" && typeof ops.$gte === "number" && docVal >= ops.$gte)) return false;
+        if ("$lt" in ops && !(typeof docVal === "number" && typeof ops.$lt === "number" && docVal < ops.$lt)) return false;
+        if ("$lte" in ops && !(typeof docVal === "number" && typeof ops.$lte === "number" && docVal <= ops.$lte)) return false;
+        if ("$eq" in ops && !(docVal === ops.$eq)) return false;
+        if ("$ne" in ops && !(docVal !== ops.$ne)) return false;
+        if ("$in" in ops && Array.isArray(ops.$in) && !ops.$in.includes(docVal)) return false;
+        if ("$nin" in ops && Array.isArray(ops.$nin) && ops.$nin.includes(docVal)) return false;
+        if ("$regex" in ops) {
+          const pattern =
+            typeof ops.$regex === "string"
+              ? ops.$regex
+              : String(ops.$regex);
+          const flags =
+            typeof ops.$options === "string" && ops.$options.includes("i")
+              ? "i"
+              : "";
           try {
             const re = new RegExp(pattern, flags);
             return typeof docVal === "string" && re.test(docVal);
@@ -241,4 +279,4 @@ class MingleDB {
   }
 }
 
-module.exports = MingleDB;
+export default MingleDB;

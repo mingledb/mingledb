@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const MingleDB = require("../index");
+const { default: MingleDB } = require("../dist/cjs/index");
 
 describe("MingleDB end-to-end flow", () => {
   let db;
