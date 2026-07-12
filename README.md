@@ -7,6 +7,7 @@
   <img src="https://img.shields.io/github/forks/mingledb/mingledb.svg" alt="Forks Badge"/>
   <img src="https://img.shields.io/github/issues/mingledb/mingledb.svg" alt="Issues Badge"/>
   <img src="https://img.shields.io/github/license/mingledb/mingledb.svg" alt="License Badge"/>
+  <img src="https://sonarqube.marcuwynu.space/api/project_badges/measure?project=mingledb_mingledb_9fc05a94-0923-4a08-852e-d3035fca6185&metric=alert_status&token=sqb_bee1126f4bd19cf7404353c59604298c7f35ab02" alt="Quality Gate Status"/>
 </p>
 
 **MingleDB** is a lightweight, file-based NoSQL database built on the BSON format. It supports basic authentication, schema validation, advanced query filters, and flat-file persistence, making it suitable for rapid prototyping, embedded use, CLI apps, or offline-first environments.
@@ -72,12 +73,12 @@ db.logout("admin");
 
 ## Use Cases
 
-* Embedded or local-first databases
-* Desktop applications
-* CLI tools or utilities
-* Offline-first storage
-* Rapid prototyping with schema validation
-* Lightweight backend for admin panels
+- Embedded or local-first databases
+- Desktop applications
+- CLI tools or utilities
+- Offline-first storage
+- Rapid prototyping with schema validation
+- Lightweight backend for admin panels
 
 ---
 
